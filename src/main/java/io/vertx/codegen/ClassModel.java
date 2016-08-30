@@ -265,7 +265,7 @@ public class ClassModel implements Model {
     }
 
     // Another user defined interface with the @VertxGen annotation is OK
-    if (isVertxGenInterface(type)) {
+    if (isVertxGenInterfaceReturn(type)) {
       return;
     }
 
@@ -310,7 +310,7 @@ public class ClassModel implements Model {
       return true;
     }
     // Another user defined interface with the @VertxGen annotation is OK
-    if (isVertxGenInterface(typeInfo)) {
+    if (isVertxGenInterfaceParam(typeInfo)) {
       return true;
     }
     // Can also specify option classes (which aren't VertxGen)
@@ -357,12 +357,12 @@ public class ClassModel implements Model {
     if (rawTypeIs(type, List.class, Set.class, Map.class)) {
       TypeInfo argument = ((ParameterizedTypeInfo) type).getArgs().get(0);
       if (type.getKind() != ClassKind.MAP) {
-        if (argument.getKind().basic || argument.getKind().json || isVertxGenInterface(argument) || isLegalDataObjectTypeParam(argument) || argument.getKind() == ClassKind.ENUM) {
+        if (argument.getKind().basic || argument.getKind().json || isVertxGenInterfaceReturn(argument) || isLegalDataObjectTypeParam(argument) || argument.getKind() == ClassKind.ENUM) {
           return true;
         }
       } else if (argument.getKind() == ClassKind.STRING) { // Only allow Map's with String's for keys
         argument = ((ParameterizedTypeInfo) type).getArgs().get(1);
-        if (argument.getKind().basic || argument.getKind().json || isVertxGenInterface(argument)) {
+        if (argument.getKind().basic || argument.getKind().json || isVertxGenInterfaceReturn(argument)) {
           return true;
         }
       }
@@ -387,7 +387,7 @@ public class ClassModel implements Model {
         if (valueType.getKind().basic ||
             valueType.getKind().json ||
             valueType.getKind() == ClassKind.ENUM ||
-            isVertxGenInterface(valueType) ||
+            isVertxGenInterfaceReturn(valueType) ||
             isLegalDataObjectTypeReturn(valueType)) {
           return true;
         }
@@ -396,13 +396,20 @@ public class ClassModel implements Model {
     return false;
   }
 
+  private boolean isVertxGenInterfaceParam(TypeInfo type) {
+    return isVertxGenInterface(type, false);
+  }
 
-  private boolean isVertxGenInterface(TypeInfo type) {
+  private boolean isVertxGenInterfaceReturn(TypeInfo type) {
+    return isVertxGenInterface(type, true);
+  }
+
+  private boolean isVertxGenInterface(TypeInfo type, boolean isReturn) {
     if (type.getKind() == ClassKind.API) {
       if (type instanceof ParameterizedTypeInfo) {
         ParameterizedTypeInfo parameterized = (ParameterizedTypeInfo) type;
         for (TypeInfo param : parameterized.getArgs()) {
-          if (!(param instanceof TypeVariableInfo || param.getKind() == ClassKind.VOID)) {
+          if (isReturn && !(param instanceof TypeVariableInfo || param.getKind() == ClassKind.VOID)) {
             return false;
           }
           if (param.isNullable()) {
@@ -453,7 +460,7 @@ public class ClassModel implements Model {
     if (type.getKind() == ClassKind.VOID && type.isNullable()) {
       return false;
     }
-    return type.getKind().json || type.getKind().basic || isVertxGenInterface(type) ||
+    return type.getKind().json || type.getKind().basic || isVertxGenInterfaceReturn(type) ||
         isLegalListSetMapReturn(type) || type.getKind() == ClassKind.ENUM || type.getKind() == ClassKind.VOID ||
         isVariableType(type) || type.getKind() == ClassKind.OBJECT || isLegalDataObjectTypeReturn(type);
   }
@@ -614,8 +621,10 @@ public class ClassModel implements Model {
       TypeInfo declaringType = typeFactory.create(declaringElt.asType());
       switch (declaringType.getKind()) {
         case API: {
+          TypeMirror abc = typeUtils.asMemberOf((DeclaredType) modelElt.asType(), modelMethod);
+          boolean sameType = typeUtils.isSameType(abc, modelMethod.asType());
           ApiTypeInfo declaringApiType = (ApiTypeInfo) declaringType.getRaw();
-          if (declaringApiType.isConcrete()) {
+          if (declaringApiType.isConcrete() && sameType) {
             return;
           }
           break;

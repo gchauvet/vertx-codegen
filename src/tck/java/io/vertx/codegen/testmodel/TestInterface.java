@@ -49,6 +49,7 @@ public interface TestInterface extends SuperInterface1, SuperInterface2 {
   Handler<AsyncResult<RefedInterface1>> methodWithHandlerAsyncResultVertxGenReturn(String expected, boolean fail);
 
   void methodWithUserTypes(RefedInterface1 refed);
+  void methodWithGenericUserTypes(GenericRefedInterface<Void> a, GenericRefedInterface<String> b, GenericRefedInterface<RefedInterface1> c);
 
   void methodWithObjectParam(String str, Object obj);
 

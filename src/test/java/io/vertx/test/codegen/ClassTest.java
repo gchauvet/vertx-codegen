@@ -99,7 +99,7 @@ import io.vertx.test.codegen.testapi.MethodWithInvalidMapParams1;
 import io.vertx.test.codegen.testapi.MethodWithInvalidMapParams2;
 import io.vertx.test.codegen.testapi.MethodWithInvalidMapReturn1;
 import io.vertx.test.codegen.testapi.MethodWithInvalidMapReturn2;
-import io.vertx.test.codegen.testapi.MethodWithInvalidParameterized;
+import io.vertx.test.codegen.testapi.MethodWithValidParameterized;
 import io.vertx.test.codegen.testapi.MethodWithInvalidParameterizedReturn;
 import io.vertx.test.codegen.testapi.MethodWithInvalidSetParams1;
 import io.vertx.test.codegen.testapi.MethodWithInvalidSetParams2;
@@ -300,11 +300,6 @@ public class ClassTest extends ClassTestBase {
   @Test
   public void testGenerateMethodWithWildcardLowerBoundTypeArg() throws Exception {
     assertGenInvalid(MethodWithWildcardLowerBoundTypeArg.class);
-  }
-
-  @Test
-  public void testGenerateMethodWithInvalidParameterized() throws Exception {
-    assertGenInvalid(MethodWithInvalidParameterized.class);
   }
 
   // Invalid returns
@@ -838,6 +833,28 @@ public class ClassTest extends ClassTestBase {
   }
 
   @Test
+  public void testValidGenericVertxGenParams() throws Exception {
+    ClassModel model = new Generator().generateClass(MethodWithValidParameterized.class);
+    assertEquals(MethodWithValidParameterized.class.getName(), model.getIfaceFQCN());
+    assertEquals(MethodWithValidParameterized.class.getSimpleName(), model.getIfaceSimpleName());
+    assertEquals(2, model.getReferencedTypes().size());
+    assertTrue(model.getReferencedTypes().contains(VertxGenClass1Info));
+    assertTrue(model.getReferencedTypes().contains(GenericInterfaceInfo));
+    assertTrue(model.getSuperTypes().isEmpty());
+    assertEquals(3, model.getMethods().size());
+
+    MethodInfo meth1 = model.getMethods().get(0);
+    MethodInfo meth2 = model.getMethods().get(1);
+    MethodInfo meth3 = model.getMethods().get(2);
+    checkMethod(meth1, "meth1", 1, "void", MethodKind.OTHER);
+    checkParam(meth1.getParams().get(0), "arg", new TypeLiteral<GenericInterface<Void>>() {});
+    checkMethod(meth2, "meth2", 1, "void", MethodKind.OTHER);
+    checkParam(meth2.getParams().get(0), "arg", new TypeLiteral<GenericInterface<String>>() {});
+    checkMethod(meth3, "meth3", 1, "void", MethodKind.OTHER);
+    checkParam(meth3.getParams().get(0), "arg", new TypeLiteral<GenericInterface<VertxGenClass1>>() {});
+  }
+
+  @Test
   public void testValidExceptionParam() throws Exception {
     ClassModel model = new Generator().generateClass(MethodWithValidThrowableParam.class);
     assertEquals(0, model.getReferencedTypes().size());
@@ -1255,13 +1272,20 @@ public class ClassTest extends ClassTestBase {
 
   @Test
   public void testParameterizedClassSuperType() throws Exception {
-    ClassModel model = new Generator().generateClass(InterfaceWithParameterizedDeclaredSupertype.class);
+    ClassModel model = new Generator().generateClass(InterfaceWithParameterizedDeclaredSupertype.class, GenericInterface.class);
     assertEquals(InterfaceWithParameterizedDeclaredSupertype.class.getName(), model.getIfaceFQCN());
     assertEquals(InterfaceWithParameterizedDeclaredSupertype.class.getSimpleName(), model.getIfaceSimpleName());
-    assertEquals(1, model.getReferencedTypes().size());
+    assertEquals(2, model.getReferencedTypes().size());
     assertTrue(model.getReferencedTypes().contains(GenericInterfaceInfo));
     assertEquals(1, model.getSuperTypes().size());
     assertTrue(model.getSuperTypes().contains(TypeReflectionFactory.create(InterfaceWithParameterizedDeclaredSupertype.class.getGenericInterfaces()[0])));
+    List<MethodInfo> methods = model.getMethods();
+    assertEquals(1, methods.size());
+    checkMethod(methods.get(0), "methodWithClassTypeParam", 3, VertxGenClass1.class.getName(), MethodKind.OTHER);
+    checkParam(methods.get(0).getParams().get(0), "t", VertxGenClass1.class);
+    checkParam(methods.get(0).getParams().get(1), "handler", new TypeLiteral<Handler<VertxGenClass1>>() {});
+    checkParam(methods.get(0).getParams().get(2), "asyncResultHandler", new TypeLiteral<Handler<AsyncResult<VertxGenClass1>>>() {});
+    assertEquals(Collections.emptyList(), methods.get(0).getTypeParams());
   }
 
   @Test

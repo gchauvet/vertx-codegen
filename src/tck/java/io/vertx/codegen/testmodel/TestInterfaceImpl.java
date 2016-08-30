@@ -225,6 +225,13 @@ public class TestInterfaceImpl implements TestInterface {
   }
 
   @Override
+  public void methodWithGenericUserTypes(GenericRefedInterface<Void> a, GenericRefedInterface<String> b, GenericRefedInterface<RefedInterface1> c) {
+    assertEquals(null, a.getValue());
+    assertEquals("aardvarks", b.getValue());
+    assertEquals("aardvarks", c.getValue().getString());
+  }
+
+  @Override
   public void methodWithObjectParam(String str, Object obj) {
     switch (str) {
       case "null":
